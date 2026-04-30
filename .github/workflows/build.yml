@@ -1,59 +1,24 @@
 name: Build
-
-concurrency:
-  group: "build"
-  cancel-in-progress: false
-
 on:
   push:
   workflow_dispatch:
-    branches:
-      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          persist-credentials: false
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
-
-      - name: Set up Java
-        uses: actions/setup-java@v5
-        with:
+          java-version: '21'
           distribution: 'temurin'
-          java-version: '25'
-
-      - name: Set up Node JS
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-
-      - name: Get current build number
-        id: build-number
-        run: |
-          cd .github/builds
-          npm install
-          npm run --silent get_number >> $GITHUB_OUTPUT
-
       - name: Build
-        run: ./gradlew build -Pcommit=${{ github.sha }} -Pbuild_number=${{ steps.build-number.outputs.number }}
+        run: ./gradlew build
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Meteor-Client-Jar
+          path: build/libs/*.jar
 
-      - name: Webhook Failure
-        if: ${{ failure() }}
-        run: |
-          cd .github/builds
-          npm run webhook -- ${{ steps.build-number.outputs.number }} ${{ github.ref_name }} https://api.github.com/repos/MeteorDevelopment/meteor-client/compare/${{ github.event.before }}...${{ github.event.after }} false
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-
-
-
-        env:
-          SERVER_TOKEN: ${{ secrets.SERVER_TOKEN }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
